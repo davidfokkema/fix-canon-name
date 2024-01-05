@@ -8,6 +8,7 @@ PASSWORD = "1234"
 RE_NAME = "(?P<name>.*?) \([0-9a-f:]{8}\)"
 
 options = webdriver.FirefoxOptions()
+# options.add_argument("--headless")
 options.accept_insecure_certs = True
 with webdriver.Firefox(options=options) as driver:
     driver.get("https://canoncfcad9.local./login.html")
