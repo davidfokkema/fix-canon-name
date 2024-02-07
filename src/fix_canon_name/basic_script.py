@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 
 PASSWORD = "1234"
 
-RE_NAME = "(?P<name>.*) \([0-9a-f:]{8}\)"
+RE_NAME = "(?P<name>.*?) \([0-9a-f:]{8}\)"
 
 options = webdriver.FirefoxOptions()
 # options.add_argument("--headless")
