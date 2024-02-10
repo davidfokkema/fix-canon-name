@@ -1,3 +1,11 @@
 Printer {
     padding: 1 2;
 }
+
+PinCodeScreen {
+    align: center middle;
+
+    & Input {
+        max-width: 40;
+    }
+}

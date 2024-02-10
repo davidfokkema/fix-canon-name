@@ -1,15 +1,25 @@
 import asyncio
 
 import rich
-from textual import on
+from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.message import Message
-from textual.widgets import Footer, Header, Label, ListItem, ListView
+from textual.screen import ModalScreen
+from textual.widgets import Footer, Header, Input, Label, ListItem, ListView
 from zeroconf import ServiceStateChange, Zeroconf
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo
 
 SERVICE = "_printer._tcp.local."
+
+
+class PinCodeScreen(ModalScreen):
+    def compose(self) -> ComposeResult:
+        yield Input(placeholder="Printer's PIN code", password=True)
+
+    @on(Input.Submitted)
+    def send_pin_code(self, event: Input.Submitted) -> None:
+        self.dismiss(event.value)
 
 
 class Printer(ListItem):
@@ -47,6 +57,12 @@ class PrinterList(ListView):
     @on(New)
     def add_printer(self, event: New) -> None:
         self.append(Printer(event.printer_name, event.server))
+
+    @on(ListView.Selected)
+    @work
+    async def fix_printer_name(self, event: ListView.Selected) -> None:
+        pin_code = await self.app.push_screen_wait(PinCodeScreen())
+        self.notify(f"Pin code: {pin_code}")
 
     def browse_services(self):
         def on_service_state_change(
