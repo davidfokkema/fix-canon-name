@@ -5,7 +5,6 @@ from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.message import Message
-from textual.widget import Widget
 from textual.widgets import Footer, Header, Label, ListItem, ListView
 from zeroconf import ServiceStateChange, Zeroconf
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo
