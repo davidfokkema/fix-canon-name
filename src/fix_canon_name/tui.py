@@ -1,12 +1,26 @@
 import asyncio
 
 import rich
+from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.message import Message
-from textual.widgets import Footer, Header, ListItem, ListView
+from textual.widget import Widget
+from textual.widgets import Footer, Header, Label, ListItem, ListView
 from zeroconf import ServiceStateChange, Zeroconf
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo
+
+SERVICE = "_printer._tcp.local."
+
+
+class Printer(ListItem):
+    def __init__(self, printer_name: str, server: str, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.printer_name = printer_name
+        self.server = server
+
+    def compose(self) -> ComposeResult:
+        yield Label(self.printer_name.removesuffix("." + SERVICE))
 
 
 class PrinterList(ListView):
@@ -17,19 +31,23 @@ class PrinterList(ListView):
     class New(Message):
         """New printer found."""
 
-        __slots__ = ["name", "server"]
+        __slots__ = ["printer_name", "server"]
 
         def __init__(self, name: str, server: str) -> None:
             super().__init__()
-            self.name = name
+            self.printer_name = name
             self.server = server
 
         def __rich_repr__(self) -> rich.repr.Result:
-            yield "name", self.name
+            yield "printer_name", self.printer_name
             yield "server", self.server
 
     def on_mount(self) -> None:
         self.browse_services()
+
+    @on(New)
+    def add_printer(self, event: New) -> None:
+        self.append(Printer(event.printer_name, event.server))
 
     def browse_services(self):
         def on_service_state_change(
@@ -50,7 +68,7 @@ class PrinterList(ListView):
         self.zeroconf = Zeroconf()
         self.browser = AsyncServiceBrowser(
             self.zeroconf,
-            "_printer._tcp.local.",
+            SERVICE,
             handlers=[on_service_state_change],
         )
 
@@ -58,11 +76,14 @@ class PrinterList(ListView):
         if self.browser is not None:
             await self.browser.async_cancel()
             self.browser = None
+            self.clear()
             self.browse_services()
 
 
 class FixCanonNameApp(App[None]):
     BINDINGS = [Binding("q", "quit", "Quit", priority=True)]
+
+    CSS_PATH = "app.tcss"
 
     def compose(self) -> ComposeResult:
         yield Header()
