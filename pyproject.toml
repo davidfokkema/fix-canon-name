@@ -9,7 +9,7 @@ packages = [{include = "fix_canon_name", from = "src"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 selenium = "^4.16.0"
-textual = "^0.47.1"
+textual = "^0.50.1"
 zeroconf = "^0.131.0"
 
 
