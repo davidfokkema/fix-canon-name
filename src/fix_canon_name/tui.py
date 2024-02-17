@@ -46,8 +46,7 @@ class PrinterList(ListView):
     idx = 0
     browser: AsyncServiceBrowser | None = None
 
-    class NewPrinter(Message):
-        """New printer found."""
+    class PrinterMessage(Message):
 
         __slots__ = ["printer_name", "server"]
 
@@ -60,7 +59,10 @@ class PrinterList(ListView):
             yield "printer_name", self.printer_name
             yield "server", self.server
 
-    class RemovedPrinter(NewPrinter):
+    class NewPrinter(PrinterMessage):
+        """New printer found."""
+
+    class RemovedPrinter(PrinterMessage):
         """Printer must be removed."""
 
     def action_add(self) -> None:
@@ -81,10 +83,8 @@ class PrinterList(ListView):
 
     @on(RemovedPrinter)
     def remove_printer(self, event: RemovedPrinter) -> None:
-        print(f"REMOVING {event}")
         hash = self.hash_name(event.printer_name)
         widget = self.query_one("#" + hash)
-        print(f"REMOVING WIDGET {widget}")
         widget.remove()
 
     def hash_name(self, name: str) -> str:
@@ -111,7 +111,6 @@ class PrinterList(ListView):
             asyncio.create_task(
                 get_service_info(zeroconf, service_type, name, state_change)
             )
-            print(f"{name=}, {state_change=}")
 
         async def get_service_info(
             zeroconf: Zeroconf,
