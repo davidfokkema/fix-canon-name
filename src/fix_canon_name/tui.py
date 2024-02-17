@@ -38,11 +38,7 @@ class Printer(ListItem):
 
 
 class PrinterList(ListView):
-    BINDINGS = [
-        ("r", "reload", "Reload"),
-        ("a", "add", "Add"),
-        ("r", "remove", "Remove"),
-    ]
+    BINDINGS = [("r", "reload", "Reload")]
     idx = 0
     browser: AsyncServiceBrowser | None = None
 
@@ -65,14 +61,6 @@ class PrinterList(ListView):
     class RemovedPrinter(PrinterMessage):
         """Printer must be removed."""
 
-    def action_add(self) -> None:
-        self.idx += 1
-        self._last_name = f"foo_{self.idx}"
-        self.add_printer(PrinterList.NewPrinter(self._last_name, "bar"))
-
-    def action_remove(self) -> None:
-        self.remove_printer(PrinterList.RemovedPrinter(self._last_name, "bar"))
-
     def on_mount(self) -> None:
         self.browse_services()
 
@@ -93,13 +81,10 @@ class PrinterList(ListView):
     @on(ListView.Selected)
     @work()
     async def fix_printer_name(self, event: ListView.Selected) -> None:
-        # pin_code = await self.app.push_screen_wait(PinCodeScreen())
-        # self.notify("Resetting...")
-        # self.reset_name_through_browser(event.item.server, pin_code)
-        self.post_message(
-            self.RemovedPrinter(event.item.printer_name, event.item.server)
-        )
-        # self.notify("Reset done.")
+        pin_code = await self.app.push_screen_wait(PinCodeScreen())
+        self.notify("Resetting...")
+        self.reset_name_through_browser(event.item.server, pin_code)
+        self.notify("Reset done.")
 
     def browse_services(self):
         def on_service_state_change(
@@ -140,6 +125,7 @@ class PrinterList(ListView):
             self.clear()
             self.browse_services()
 
+    @work(thread=True)
     def reset_name_through_browser(self, server: str, pin_code: str) -> None:
         options = webdriver.FirefoxOptions()
         options.add_argument("--headless")
