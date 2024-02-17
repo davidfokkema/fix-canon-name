@@ -18,6 +18,62 @@ SERVICE = "_printer._tcp.local."
 RE_NAME = "(?P<name>.*?) \([0-9a-f:]{8}\)"
 
 
+class FixPrinterScreen(ModalScreen):
+
+    class StatusUpdate(Message):
+        def __init__(self, msg: str) -> None:
+            super().__init__()
+            self.msg = msg
+
+    class Completed(Message):
+        pass
+
+    def __init__(self, server: str, pin_code: str) -> None:
+        super().__init__()
+        self.server = server
+        self.pin_code = pin_code
+
+    def compose(self) -> ComposeResult:
+        yield Label(id="status")
+
+    def on_mount(self) -> None:
+        self.reset_name_through_browser()
+
+    @on(StatusUpdate)
+    def update_message(self, event: StatusUpdate) -> None:
+        self.query_one("#status").update(event.msg)
+
+    @on(Completed)
+    def finish_task(self) -> None:
+        self.dismiss(True)
+
+    @work(thread=True)
+    def reset_name_through_browser(self) -> None:
+        self.post_message(self.StatusUpdate("Starting web driver..."))
+        options = webdriver.FirefoxOptions()
+        options.add_argument("--headless")
+        options.accept_insecure_certs = True
+        with webdriver.Firefox(options=options) as driver:
+            self.post_message(self.StatusUpdate("Connecting to printer..."))
+            driver.get(f"https://{self.server}/login.html")
+            driver.find_element(By.ID, "i0012A").click()
+            driver.find_element(By.ID, "i2101").send_keys(self.pin_code)
+            self.post_message(self.StatusUpdate("Logging in..."))
+            driver.find_element(By.ID, "submitButton").click()
+
+            self.post_message(self.StatusUpdate("Loading Airprint settings..."))
+            driver.get(f"https://{self.server}/m_network_airprint_edit.html")
+            name_element = driver.find_element(By.ID, "i2072")
+            current_name = name_element.get_attribute("value")
+            if match := re.match(RE_NAME, current_name):
+                printer_name = match.group("name")
+                name_element.clear()
+                name_element.send_keys(printer_name)
+                self.post_message(self.StatusUpdate("Setting new printer name..."))
+                driver.find_element(By.ID, "submitButton").click()
+        self.post_message(self.Completed())
+
+
 class PinCodeScreen(ModalScreen):
     def compose(self) -> ComposeResult:
         yield Input(placeholder="Printer's PIN code", password=True)
@@ -83,7 +139,7 @@ class PrinterList(ListView):
     async def fix_printer_name(self, event: ListView.Selected) -> None:
         pin_code = await self.app.push_screen_wait(PinCodeScreen())
         self.notify("Resetting...")
-        self.reset_name_through_browser(event.item.server, pin_code)
+        await self.app.push_screen_wait(FixPrinterScreen(event.item.server, pin_code))
         self.notify("Reset done.")
 
     def browse_services(self):
@@ -124,26 +180,6 @@ class PrinterList(ListView):
             self.browser = None
             self.clear()
             self.browse_services()
-
-    @work(thread=True)
-    def reset_name_through_browser(self, server: str, pin_code: str) -> None:
-        options = webdriver.FirefoxOptions()
-        options.add_argument("--headless")
-        options.accept_insecure_certs = True
-        with webdriver.Firefox(options=options) as driver:
-            driver.get(f"https://{server}/login.html")
-            driver.find_element(By.ID, "i0012A").click()
-            driver.find_element(By.ID, "i2101").send_keys(pin_code)
-            driver.find_element(By.ID, "submitButton").click()
-
-            driver.get(f"https://{server}/m_network_airprint_edit.html")
-            name_element = driver.find_element(By.ID, "i2072")
-            current_name = name_element.get_attribute("value")
-            if match := re.match(RE_NAME, current_name):
-                printer_name = match.group("name")
-                name_element.clear()
-                name_element.send_keys(printer_name)
-                driver.find_element(By.ID, "submitButton").click()
 
 
 class FixCanonNameApp(App[None]):

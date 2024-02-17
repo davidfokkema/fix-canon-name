@@ -9,3 +9,15 @@ PinCodeScreen {
         max-width: 40;
     }
 }
+
+FixPrinterScreen {
+    align: center middle;
+
+    & #status {
+        border: tall $accent;
+        background: $panel;
+        padding: 1 2;
+        text-align: center;
+        width: 50;
+    }
+}
