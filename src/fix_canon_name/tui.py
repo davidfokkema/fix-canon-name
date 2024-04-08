@@ -8,9 +8,18 @@ from selenium.webdriver.common.by import By
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
+from textual.containers import Center, Vertical
 from textual.message import Message
 from textual.screen import ModalScreen
-from textual.widgets import Footer, Header, Input, Label, ListItem, ListView
+from textual.widgets import (
+    Footer,
+    Header,
+    Input,
+    Label,
+    ListItem,
+    ListView,
+    ProgressBar,
+)
 from zeroconf import ServiceStateChange, Zeroconf
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo
 
@@ -21,9 +30,10 @@ RE_NAME = "(?P<name>.*?) \([0-9a-f:]{8}\)"
 class FixPrinterScreen(ModalScreen):
 
     class StatusUpdate(Message):
-        def __init__(self, msg: str) -> None:
+        def __init__(self, msg: str, advance: bool = True) -> None:
             super().__init__()
             self.msg = msg
+            self.advance = advance
 
     class Completed(Message):
         pass
@@ -34,27 +44,36 @@ class FixPrinterScreen(ModalScreen):
         self.pin_code = pin_code
 
     def compose(self) -> ComposeResult:
-        yield Label(id="status")
+        with Vertical():
+            with Center():
+                yield Label(id="status_msg")
+            with Center():
+                yield ProgressBar(total=4, show_eta=False)
 
     def on_mount(self) -> None:
         self.reset_name_through_browser()
 
     @on(StatusUpdate)
     def update_message(self, event: StatusUpdate) -> None:
-        self.query_one("#status").update(event.msg)
+        self.query_one("#status_msg").update(event.msg)
+        if event.advance:
+            self.query_one(ProgressBar).advance(1)
 
     @on(Completed)
     def finish_task(self) -> None:
+        self.query_one(ProgressBar).advance(1)
         self.dismiss(True)
 
     @work(thread=True)
     def reset_name_through_browser(self) -> None:
-        self.post_message(self.StatusUpdate("Starting web driver..."))
+        self.post_message(self.StatusUpdate("Starting web driver...", advance=False))
         options = webdriver.FirefoxOptions()
         options.add_argument("--headless")
         options.accept_insecure_certs = True
         with webdriver.Firefox(options=options) as driver:
-            self.post_message(self.StatusUpdate("Connecting to printer..."))
+            self.post_message(
+                self.StatusUpdate("Connecting to printer...", advance=False)
+            )
             driver.get(f"https://{self.server}/login.html")
             driver.find_element(By.ID, "i0012A").click()
             driver.find_element(By.ID, "i2101").send_keys(self.pin_code)
@@ -138,7 +157,6 @@ class PrinterList(ListView):
     @work()
     async def fix_printer_name(self, event: ListView.Selected) -> None:
         pin_code = await self.app.push_screen_wait(PinCodeScreen())
-        self.notify("Resetting...")
         await self.app.push_screen_wait(FixPrinterScreen(event.item.server, pin_code))
         self.notify("Reset done.")
 

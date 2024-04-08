@@ -13,11 +13,15 @@ PinCodeScreen {
 FixPrinterScreen {
     align: center middle;
 
-    & #status {
+    & Vertical {
         border: tall $accent;
         background: $panel;
-        padding: 1 2;
         text-align: center;
         width: 50;
+        height: auto;
+    }
+
+    & #status_msg {
+        padding-bottom: 1;
     }
 }
