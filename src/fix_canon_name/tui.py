@@ -12,6 +12,7 @@ from textual.containers import Center, Vertical
 from textual.message import Message
 from textual.screen import ModalScreen
 from textual.widgets import (
+    Button,
     Footer,
     Header,
     Input,
@@ -56,7 +57,9 @@ class FixPrinterScreen(ModalScreen):
             with Center():
                 yield Label(id="status_msg")
             with Center():
-                yield ProgressBar(total=4, show_eta=False)
+                yield ProgressBar(total=4, show_eta=False, id="progress")
+            with Center():
+                yield Button(label="Cancel", variant="error", id="cancel")
 
     def on_mount(self) -> None:
         self.reset_name_through_browser()
@@ -74,8 +77,13 @@ class FixPrinterScreen(ModalScreen):
         self.dismiss(True)
 
     @on(Failed)
-    def abort_task(self, event: Failed) -> None:
+    def exit_with_error(self, event: Failed) -> None:
         self.notify(event.msg, severity="error")
+        self.dismiss(False)
+
+    @on(Button.Pressed, "#cancel")
+    def cancel_task(self) -> None:
+        self.notify("Canceled.", severity="warning")
         self.dismiss(False)
 
     @work(thread=True)

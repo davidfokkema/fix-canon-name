@@ -29,7 +29,7 @@ FixPrinterScreen {
         height: auto;
     }
 
-    & #status_msg {
-        padding-bottom: 1;
+    & #status_msg, #progress {
+        margin-bottom: 1;
     }
 }
