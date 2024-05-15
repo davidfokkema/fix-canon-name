@@ -917,13 +917,13 @@ tests = ["cython", "littleutils", "pygments", "pytest", "typeguard"]
 
 [[package]]
 name = "textual"
-version = "0.50.1"
+version = "0.60.0"
 description = "Modern Text User Interface framework"
 optional = false
-python-versions = ">=3.8,<4.0"
+python-versions = "<4.0,>=3.8"
 files = [
-    {file = "textual-0.50.1-py3-none-any.whl", hash = "sha256:11bd87fe6c543358122c43db2e9dfc5940900ef9b8975502ab7043792928638b"},
-    {file = "textual-0.50.1.tar.gz", hash = "sha256:415bef44b2dfa702d17ebb08637c0141eb54767cfbeafe60d07e62104183b56a"},
+    {file = "textual-0.60.0-py3-none-any.whl", hash = "sha256:be7870ed12014cf7a91ea9f96a3c49b1a52f93e0e76686a5fa276951d65867a7"},
+    {file = "textual-0.60.0.tar.gz", hash = "sha256:5a9117d6fd48d105ba9671fe6eca8197d607fd2d20fe5405681621fc34b17cfe"},
 ]
 
 [package.dependencies]
@@ -932,17 +932,17 @@ rich = ">=13.3.3"
 typing-extensions = ">=4.4.0,<5.0.0"
 
 [package.extras]
-syntax = ["tree-sitter (>=0.20.1,<0.21.0)", "tree_sitter_languages (>=1.7.0)"]
+syntax = ["tree-sitter (>=0.20.1,<0.21.0)", "tree-sitter-languages (==1.10.2)"]
 
 [[package]]
 name = "textual-dev"
-version = "1.4.0"
+version = "1.5.1"
 description = "Development tools for working with Textual"
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "textual_dev-1.4.0-py3-none-any.whl", hash = "sha256:330beec18b8f469adf7cdf9d69cc94965bf3e69d9aec23625d62cdedcadab044"},
-    {file = "textual_dev-1.4.0.tar.gz", hash = "sha256:a20ea746a93e66978e9dfe71a7e5409854c96cc3e46550cc40760b199d7a5d3b"},
+    {file = "textual_dev-1.5.1-py3-none-any.whl", hash = "sha256:bb37dd769ae6b67e1422aa97f6d6ef952e0a6d2aafe08327449e8bdd70474776"},
+    {file = "textual_dev-1.5.1.tar.gz", hash = "sha256:e0366ab6f42c128d7daa37a7c418e61fe7aa83731983da990808e4bf2de922a1"},
 ]
 
 [package.dependencies]
@@ -1242,4 +1242,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "1b6d44dcff1aa167720e2436d85e55b05d667d24ec82fcf6ff87f1d39ecbbbfe"
+content-hash = "6952c84cea3a80902e97fc90fb40c4cce3c377b43846be71f3c5fe16ea17b8eb"
