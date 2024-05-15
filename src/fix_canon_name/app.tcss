@@ -10,6 +10,14 @@ PinCodeScreen {
     }
 }
 
+NewNameScreen {
+    align: center middle;
+
+    & Input {
+        max-width: 80%;
+    }
+}
+
 FixPrinterScreen {
     align: center middle;
 

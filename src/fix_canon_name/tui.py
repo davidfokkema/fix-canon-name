@@ -24,7 +24,7 @@ from zeroconf import ServiceStateChange, Zeroconf
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo
 
 SERVICE = "_printer._tcp.local."
-RE_NAME = "(?P<name>.*?) \([0-9a-f:]{8}\)"
+RE_NAME = "(?P<name>.*?)(?= \([a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}\))"
 
 
 class FixPrinterScreen(ModalScreen):
@@ -45,10 +45,11 @@ class FixPrinterScreen(ModalScreen):
             super().__init__()
             self.msg = msg
 
-    def __init__(self, server: str, pin_code: str) -> None:
+    def __init__(self, server: str, pin_code: str, new_name: str) -> None:
         super().__init__()
         self.server = server
         self.pin_code = pin_code
+        self.new_name = new_name
 
     def compose(self) -> ComposeResult:
         with Vertical():
@@ -99,13 +100,10 @@ class FixPrinterScreen(ModalScreen):
             self.post_message(self.StatusUpdate("Loading Airprint settings..."))
             driver.get(f"https://{self.server}/m_network_airprint_edit.html")
             name_element = driver.find_element(By.ID, "i2072")
-            current_name = name_element.get_attribute("value")
-            if match := re.match(RE_NAME, current_name):
-                printer_name = match.group("name")
-                name_element.clear()
-                name_element.send_keys(printer_name)
-                self.post_message(self.StatusUpdate("Setting new printer name..."))
-                driver.find_element(By.ID, "submitButton").click()
+            name_element.clear()
+            name_element.send_keys(self.new_name)
+            self.post_message(self.StatusUpdate("Setting new printer name..."))
+            driver.find_element(By.ID, "submitButton").click()
         self.post_message(self.Completed())
 
 
@@ -116,6 +114,25 @@ class PinCodeScreen(ModalScreen):
     @on(Input.Submitted)
     def send_pin_code(self, event: Input.Submitted) -> None:
         self.dismiss(event.value)
+
+
+class NewNameScreen(ModalScreen):
+    def __init__(self, current_name: str, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.current_name = current_name
+
+    def compose(self) -> ComposeResult:
+        if match := re.match(RE_NAME, self.current_name):
+            new_name = match.group("name")
+        else:
+            new_name = self.current_name.split("._printer")[0]
+        yield Input(value=new_name)
+
+    @on(Input.Submitted)
+    def send_new_name(self, event: Input.Submitted) -> None:
+        if not (new_name := event.value):
+            new_name = self.current_name
+        self.dismiss(new_name)
 
 
 class Printer(ListItem):
@@ -172,8 +189,13 @@ class PrinterList(ListView):
     @on(ListView.Selected)
     @work()
     async def fix_printer_name(self, event: ListView.Selected) -> None:
+        new_name = await self.app.push_screen_wait(
+            NewNameScreen(event.item.printer_name)
+        )
         pin_code = await self.app.push_screen_wait(PinCodeScreen())
-        await self.app.push_screen_wait(FixPrinterScreen(event.item.server, pin_code))
+        await self.app.push_screen_wait(
+            FixPrinterScreen(event.item.server, pin_code, new_name)
+        )
 
     def browse_services(self):
         def on_service_state_change(
@@ -216,7 +238,7 @@ class PrinterList(ListView):
 
 
 class FixCanonNameApp(App[None]):
-    BINDINGS = [Binding("q", "quit", "Quit", priority=True)]
+    BINDINGS = [Binding("q", "quit", "Quit")]
 
     CSS_PATH = "app.tcss"
 
