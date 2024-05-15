@@ -38,6 +38,13 @@ class FixPrinterScreen(ModalScreen):
     class Completed(Message):
         pass
 
+    class Failed(Message):
+        msg: str | None
+
+        def __init__(self, msg: str | None = None) -> None:
+            super().__init__()
+            self.msg = msg
+
     def __init__(self, server: str, pin_code: str) -> None:
         super().__init__()
         self.server = server
@@ -62,7 +69,13 @@ class FixPrinterScreen(ModalScreen):
     @on(Completed)
     def finish_task(self) -> None:
         self.query_one(ProgressBar).advance(1)
+        self.notify("Reset done.")
         self.dismiss(True)
+
+    @on(Failed)
+    def abort_task(self, event: Failed) -> None:
+        self.notify(event.msg, severity="error")
+        self.dismiss(False)
 
     @work(thread=True)
     def reset_name_through_browser(self) -> None:
@@ -79,6 +92,9 @@ class FixPrinterScreen(ModalScreen):
             driver.find_element(By.ID, "i2101").send_keys(self.pin_code)
             self.post_message(self.StatusUpdate("Logging in..."))
             driver.find_element(By.ID, "submitButton").click()
+            if not driver.current_url.endswith("portal_top.html"):
+                self.post_message(self.Failed(msg="Login failed, incorrect PIN?"))
+                return
 
             self.post_message(self.StatusUpdate("Loading Airprint settings..."))
             driver.get(f"https://{self.server}/m_network_airprint_edit.html")
@@ -158,7 +174,6 @@ class PrinterList(ListView):
     async def fix_printer_name(self, event: ListView.Selected) -> None:
         pin_code = await self.app.push_screen_wait(PinCodeScreen())
         await self.app.push_screen_wait(FixPrinterScreen(event.item.server, pin_code))
-        self.notify("Reset done.")
 
     def browse_services(self):
         def on_service_state_change(
