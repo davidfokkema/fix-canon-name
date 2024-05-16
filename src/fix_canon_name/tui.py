@@ -246,7 +246,10 @@ class PrinterList(ListView):
 
 
 class FixCanonNameApp(App[None]):
-    BINDINGS = [Binding("q", "quit", "Quit")]
+    BINDINGS = [
+        Binding("q", "quit", "Quit"),
+        Binding("ctrl+s", "save_screenshot", "Screenshot", priority=True),
+    ]
 
     CSS_PATH = "app.tcss"
 
@@ -257,6 +260,10 @@ class FixCanonNameApp(App[None]):
 
     def action_quit(self) -> None:
         self.exit()
+
+    def action_save_screenshot(self) -> None:
+        path = self.save_screenshot()
+        self.notify(f"Saved screenshot to {path}")
 
 
 app = FixCanonNameApp()
