@@ -26,9 +26,7 @@ If your satisfied, press enter again, enter your printer's remote UI pin code an
 
 ## Caveats
 
-The website served by the remote UI is _terrible_. It requires javascript to navigate it and uses forms and buttons with IDs like `i0012A` and `i2101`. I'm not sure how universal this is and if this will change in future firmware updates...
-
-Also, the screenshots may not look nice if your browser does not render the SVGs correctly. Maybe I should've used old-style PNGs.
+The website served by the remote UI is _terrible_. It requires javascript to navigate it and uses forms and buttons with IDs like `i0012A` and `i2101`. I'm not sure how universal this is and if this will change in future firmware updates... Sometimes the printer refuses to change its name and you'll have to try a second time. Also, the screenshots may not look nice if your browser does not render the SVGs correctly. Maybe I should've used old-style PNGs.
 
 
 ## Installation
