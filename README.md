@@ -33,7 +33,9 @@ The website served by the remote UI is _terrible_. It requires javascript to nav
 
 ## Installation
 
-Note that this app uses the Firefox browser to access the remote UI in the background. So, obviously, you'll need to have Firefox installed.
+This is a Python app and currently not distributed stand-alone using a nice installer. So you'll need to have Python installed and some basic knowledge about installing Python packages. [Pipx](https://pipx.pypa.io/stable/) is, in most cases, the preferred method of installation.
+
+Note that this app uses the Firefox browser to access the remote UI in the background. So, obviously, you'll need to have Firefox installed. The remote UI on your printer has to be enabled and you must know its PIN code.
 
 
 ### Using pipx
