@@ -8,6 +8,8 @@ The solution is either to:
 
 Now, there is a third option using a terminal UI (TUI). It is still slow, but at least you can grab a coffee.
 
+This app was build using the awesome [Textual framework](https://www.textualize.io).
+
 
 ## Usage
 
