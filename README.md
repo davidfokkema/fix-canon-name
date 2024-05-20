@@ -4,7 +4,7 @@ Lots of people are complaining in the [Canon forums](https://community.usa.canon
 
 The solution is either to:
 1. Keep installing the new printer each time the name changes;
-2. Change the name back to the original name using the hard-to-navigate and frustratingly slow web UI.
+2. Change the name back to the original name using the hard-to-navigate and frustratingly slow remote UI.
 
 Now, there is a third option using a terminal UI (TUI). It is still slow, but at least you can grab a coffee.
 
@@ -19,9 +19,16 @@ This will bring up a list of Airprint printers. Select using the cursor keys and
 
 ![Screenshot showing name input field](docs/screenshot-input-name.svg)
 
-If your satisfied, press enter again, enter your printer's web UI pin code and wait while the app is navigating the web UI in the background and changing the Airprint name:
+If your satisfied, press enter again, enter your printer's remote UI pin code and wait while the app is navigating the remote UI in the background and changing the Airprint name:
 
 ![Screenshot showing the renaming process](docs/screenshot-setting-name.svg)
+
+
+## Caveats
+
+The website served by the remote UI is _terrible_. It requires javascript to navigate it and uses forms and buttons with IDs like `i0012A` and `i2101`. I'm not sure how universal this is and if this will change in future firmware updates...
+
+Also, the screenshots may not look nice if your browser does not render the SVGs correctly. Maybe I should've used old-style PNGs.
 
 
 ## Installation
