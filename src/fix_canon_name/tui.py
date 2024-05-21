@@ -5,6 +5,8 @@ import re
 import rich
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -26,6 +28,7 @@ from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo
 
 SERVICE = "_printer._tcp.local."
 RE_NAME = "(?P<name>.*?)(?= \([a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}\))"
+NUM_CHARS = 15
 
 
 class FixPrinterScreen(ModalScreen):
@@ -46,10 +49,13 @@ class FixPrinterScreen(ModalScreen):
             super().__init__()
             self.msg = msg
 
-    def __init__(self, server: str, pin_code: str, new_name: str) -> None:
+    def __init__(
+        self, adminurl: str, pin_code: str, current_name: str, new_name: str
+    ) -> None:
         super().__init__()
-        self.server = server
+        self.adminurl = adminurl
         self.pin_code = pin_code
+        self.current_name = current_name
         self.new_name = new_name
 
     def compose(self) -> ComposeResult:
@@ -96,22 +102,36 @@ class FixPrinterScreen(ModalScreen):
             self.post_message(
                 self.StatusUpdate("Connecting to printer...", advance=False)
             )
-            driver.get(f"https://{self.server}/login.html")
-            driver.find_element(By.ID, "i0012A").click()
-            driver.find_element(By.ID, "i2101").send_keys(self.pin_code)
+            driver.get(self.adminurl)
+            driver.find_element(By.XPATH, "//input[@type='password']").send_keys(
+                self.pin_code
+            )
             self.post_message(self.StatusUpdate("Logging in..."))
             driver.find_element(By.ID, "submitButton").click()
-            if not driver.current_url.endswith("portal_top.html"):
+            if not driver.current_url.endswith("airprint.html"):
                 self.post_message(self.Failed(msg="Login failed, incorrect PIN?"))
                 return
-
+            element = WebDriverWait(driver, 30).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//input[contains(@value, 'Edit')]")
+                )
+            )
             self.post_message(self.StatusUpdate("Loading Airprint settings..."))
-            driver.get(f"https://{self.server}/m_network_airprint_edit.html")
-            name_element = driver.find_element(By.ID, "i2072")
+            element.click()
+
+            name_element = WebDriverWait(driver, 30).until(
+                EC.presence_of_element_located(
+                    (
+                        By.XPATH,
+                        f"//input[starts-with(@value, '{self.current_name[:NUM_CHARS]}')]",
+                    )
+                )
+            )
+            self.post_message(self.StatusUpdate("Setting new printer name..."))
             name_element.clear()
             name_element.send_keys(self.new_name)
-            self.post_message(self.StatusUpdate("Setting new printer name..."))
             driver.find_element(By.ID, "submitButton").click()
+
         self.post_message(self.Completed())
 
 
@@ -144,10 +164,13 @@ class NewNameScreen(ModalScreen):
 
 
 class Printer(ListItem):
-    def __init__(self, printer_name: str, server: str, *args, **kwargs) -> None:
+    def __init__(
+        self, printer_name: str, server: str, adminurl: str | None, *args, **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.printer_name = printer_name
         self.server = server
+        self.adminurl = adminurl
 
     def compose(self) -> ComposeResult:
         yield Label(self.printer_name.removesuffix("." + SERVICE))
@@ -158,35 +181,36 @@ class PrinterList(ListView):
     idx = 0
     browser: AsyncServiceBrowser | None = None
 
-    class PrinterMessage(Message):
+    class NewPrinterMessage(Message):
 
-        __slots__ = ["printer_name", "server"]
-
-        def __init__(self, name: str, server: str) -> None:
+        def __init__(
+            self, printer_name: str, server: str, adminurl: str | None
+        ) -> None:
             super().__init__()
-            self.printer_name = name
+            self.printer_name = printer_name
             self.server = server
+            self.adminurl = adminurl
 
         def __rich_repr__(self) -> rich.repr.Result:
             yield "printer_name", self.printer_name
             yield "server", self.server
+            yield "adminurl", self.adminurl
 
-    class NewPrinter(PrinterMessage):
-        """New printer found."""
-
-    class RemovedPrinter(PrinterMessage):
-        """Printer must be removed."""
+    class RemovedPrinterMessage(Message):
+        def __init__(self, printer_name: str) -> None:
+            super().__init__()
+            self.printer_name = printer_name
 
     def on_mount(self) -> None:
         self.browse_services()
 
-    @on(NewPrinter)
-    def add_printer(self, event: NewPrinter) -> None:
+    @on(NewPrinterMessage)
+    def add_printer(self, event: NewPrinterMessage) -> None:
         hash = self.hash_name(event.printer_name)
-        self.append(Printer(event.printer_name, event.server, id=hash))
+        self.append(Printer(event.printer_name, event.server, event.adminurl, id=hash))
 
-    @on(RemovedPrinter)
-    def remove_printer(self, event: RemovedPrinter) -> None:
+    @on(RemovedPrinterMessage)
+    def remove_printer(self, event: RemovedPrinterMessage) -> None:
         hash = self.hash_name(event.printer_name)
         widget = self.query_one("#" + hash)
         widget.remove()
@@ -202,7 +226,12 @@ class PrinterList(ListView):
         )
         pin_code = await self.app.push_screen_wait(PinCodeScreen())
         await self.app.push_screen_wait(
-            FixPrinterScreen(event.item.server, pin_code, new_name)
+            FixPrinterScreen(
+                adminurl=event.item.adminurl,
+                pin_code=pin_code,
+                current_name=event.item.printer_name,
+                new_name=new_name,
+            )
         )
 
     def browse_services(self):
@@ -226,9 +255,15 @@ class PrinterList(ListView):
             await info.async_request(zeroconf, 3000)
             match state_change:
                 case ServiceStateChange.Added:
-                    self.post_message(self.NewPrinter(name, info.server))
+                    try:
+                        adminurl = info.decoded_properties["adminurl"]
+                    except (TypeError, KeyError):
+                        adminurl = None
+                    self.post_message(
+                        self.NewPrinterMessage(name, info.server, adminurl)
+                    )
                 case ServiceStateChange.Removed:
-                    self.post_message(self.RemovedPrinter(name, info.server))
+                    self.post_message(self.RemovedPrinterMessage(name))
 
         self.zeroconf = Zeroconf()
         self.browser = AsyncServiceBrowser(
