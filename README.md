@@ -19,18 +19,18 @@ fix-canon-name
 ```
 This will bring up a list of Airprint printers. Select using the cursor keys and press enter, or use you mouse to click on your printer. This will show an input field for the new name. The app tries to be smart about it by removing the hex codes, so the field will contain the original name:
 
-![Screenshot showing name input field](docs/screenshot-input-name.svg)
+![Screenshot showing name input field](docs/screenshot-input-name.png)
 
 If your satisfied, press enter again, enter your printer's remote UI pin code and wait while the app is navigating the remote UI in the background and changing the Airprint name:
 
-![Screenshot showing the renaming process](docs/screenshot-setting-name.svg)
+![Screenshot showing the renaming process](docs/screenshot-setting-name.png)
 
 
 ## Caveats
 
 The website served by the remote UI is _terrible_. It requires javascript to navigate it and uses forms and buttons with IDs like `i0012A` and `i2101`. I'm not sure how universal this is and if this will change in future firmware updates... This app tries to be smart about locating input fields and buttons based on text matches and types of elements, making it a bit more robust.
 
-Sometimes the printer refuses to change its name and you'll have to try a second time. Also, the screenshots may not look nice if your browser does not render the SVGs correctly. ~~Maybe~~ I should've used old-style PNGs.
+Sometimes the printer refuses to change its name and you'll have to try a second time.
 
 
 ## Installation
